@@ -32,28 +32,25 @@ contract DAOmanager is Ownable {
         //check nonce
     }
 
-    function voteOnProposal(uint256 _proposalId, bytes32 _signedHash, bytes32 r, bytes32 s, uint8 v) external {
-        
+    function voteOnProposal(uint256 _proposalId, bytes32 _signedHash, bytes32 r, bytes32 s, uint8 v, nonce) external {
         //compare the hash with expected hash
-        require(_validHash(_signedHash), "invalid hash");
-
-        //get signer from signature + ecrecover
-        address voter = ecrecover(_ethSignedMessageHash, v, r, s);
-        
-        //check if the voter has permission:
+        require(_validHash(_signedHash, r, s, v), "invalid hash");
+        address signer = ecrecover(_ethSignedMessageHash, v, r, s);
         require(validSigners[_signer].isValid, "voter has no permission");
-        
-        //check if the signed hash is used
         require(!executedTxs[_signedHash], "Tx already executed");
-
-
+        
         executedTxs[_signedHash] = true;
 
         _forwardVote(_proposalId);
     }
 
-    function _validHash(address _signer) private returns (bool) {
-        
+    function _validHash(bytes32 _signedHash, bytes32 r, bytes32 s, uint8 v, nonce) private returns (bool) {
+        bytes32 signedMessage = keccak256(abi.encodePacked("vote()", r, s, v, nonce))
+        bytes32 ethSignedMessage = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", signedMessage));
+        if (ethSignedMessage == _signedHash){
+            return true;
+        }
+        return false;
     }
 
     function _forwardVote(uint256 _proposalId) private {
@@ -65,6 +62,7 @@ contract DAOmanager is Ownable {
             }
         }
         validSigners.votedProposals.push(_proposalId);
-        proposals[_proposalId].call();//how to set the call?
+        (bool success, ) = proposals[_proposalId].call(abi.encodeWithSignature("Vote()"));
+        require(success, "unexpected error during call")
     }
 }
