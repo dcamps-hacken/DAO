@@ -1,51 +1,49 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.0;
 
-import "@openzeppelin\contracts\access\Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DAOmanager is Ownable { 
-
+    
     struct Signer {
         bool isValid;
-        uint256[] votedProposals;
+        uint256 nonce; //nonce is tight to address
+    }
 
-    mapping(address => Signer) public validSigners; //nonce tracking?
-    mapping(bytes32 => bool) public executedTxs; //is this enough for the nonce or needs additional check?
+    mapping(address => Signer) validSigners;
     mapping(uint256 => address) proposals;
-
-    Event NewProposal(uint256 indexed _proposalId, address indexed _proposalAddress);
-    Event SignerAdded(address indexed _signer);
-    Event SignerDeleted(address indexed _signer);
+    
+    event NewProposal(uint256 indexed _proposalId, address indexed _proposalAddress);
+    event SignerAdded(address indexed _signer);
+    event SignerDeleted(address indexed _signer);
 
     function addProposal(uint256 _proposalId, address _proposalAddress) external onlyOwner {
-        proposals[_proposalId] = _proposalAddress
-        emit NewProposal(_proposalId, _proposalAddress)
+        proposals[_proposalId] = _proposalAddress;
+        emit NewProposal(_proposalId, _proposalAddress);
     }
 
     function addSigner(address _signer) external onlyOwner{
-        validSigners[_signature].isvalid = true;
-        emit SignerAdded(_signer)
+        validSigners[_signer].isValid = true;
+        emit SignerAdded(_signer);
     }
 
     function deleteSigner(address _signer) external onlyOwner{
-        validSigners[_signature].isvalid = false;
+        validSigners[_signer].isValid = false;
         emit SignerDeleted(_signer);
-        //check nonce
     }
 
-    function voteOnProposal(uint256 _proposalId, bytes32 _signedHash, bytes32 r, bytes32 s, uint8 v, nonce) external {
-        //compare the hash with expected hash
-        require(_validHash(_signedHash, r, s, v), "invalid hash");
-        address signer = ecrecover(_ethSignedMessageHash, v, r, s);
-        require(validSigners[_signer].isValid, "voter has no permission");
-        require(!executedTxs[_signedHash], "Tx already executed");
+    function voteOnProposal(address _sender, uint256 _voteOption, uint256 _proposalId, bytes32 _signedHash, bytes32 r, bytes32 s, uint8 v, uint256 _nonce) external {
+        require(_isValidHash(_voteOption, _signedHash, _nonce, _signedHash), "invalid hash");
         
-        executedTxs[_signedHash] = true;
-
-        _forwardVote(_proposalId);
+        address signer = ecrecover(_signedHash, v, r, s);//if signed hash is diff and do not correspond to the sig, a different address is given
+        require(signer == _sender, "incorrect signer");
+        
+        require(validSigners[signer].isValid, "voter has no permission");
+        validSigners[signer].nonce += 1;
+        _forwardVote(_voteOption, _proposalId, signer);
     }
 
-    function _validHash(bytes32 _signedHash, bytes32 r, bytes32 s, uint8 v, nonce) private returns (bool) {
-        bytes32 signedMessage = keccak256(abi.encodePacked("vote()", r, s, v, nonce))
+    function _isValidHash(uint256 _voteOption, bytes32 _proposalId, uint256 _nonce, bytes32 _signedHash) private pure returns (bool) {
+        bytes32 signedMessage = keccak256(abi.encodePacked(_voteOption, _proposalId, _nonce));
         bytes32 ethSignedMessage = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", signedMessage));
         if (ethSignedMessage == _signedHash){
             return true;
@@ -53,16 +51,8 @@ contract DAOmanager is Ownable {
         return false;
     }
 
-    function _forwardVote(uint256 _proposalId) private {
-        uint256[] votedProposals = validSigners.votedProposals;
-        uint256 numVotedProposals = votedProposals.length
-        for (i, i < numVotedProposals, i++){
-            if (votedProposals[i] == _proposalId){
-                revert; //error message!
-            }
-        }
-        validSigners.votedProposals.push(_proposalId);
-        (bool success, ) = proposals[_proposalId].call(abi.encodeWithSignature("Vote()"));
-        require(success, "unexpected error during call")
+    function _forwardVote(uint256 _voteOption, uint256 _proposalId, address _signer) private {
+        (bool success, ) = proposals[_proposalId].call(abi.encodeWithSignature("Vote(uint256,address)", _voteOption, _signer));//how to input params here
+        require(success, "unexpected error during call");
     }
 }
