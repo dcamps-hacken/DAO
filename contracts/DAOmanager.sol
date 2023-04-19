@@ -9,14 +9,15 @@ contract DAOmanager is Ownable {
         uint256 nonce; //nonce is tight to address
     }
 
-    mapping(address => Signer) validSigners;
-    mapping(uint256 => address) proposals;
+    mapping(address => Signer) public validSigners;
+    mapping(uint256 => address) public proposals;
     
     event NewProposal(uint256 indexed _proposalId, address indexed _proposalAddress);
     event SignerAdded(address indexed _signer);
     event SignerDeleted(address indexed _signer);
 
     function addProposal(uint256 _proposalId, address _proposalAddress) external onlyOwner {
+        require(proposals[_proposalId] == address(0), "ID already used");
         proposals[_proposalId] = _proposalAddress;
         emit NewProposal(_proposalId, _proposalAddress);
     }
@@ -29,6 +30,14 @@ contract DAOmanager is Ownable {
     function deleteSigner(address _signer) external onlyOwner{
         validSigners[_signer].isValid = false;
         emit SignerDeleted(_signer);
+    }
+
+    function getProposal(uint256 _proposalId) external view returns (address){
+        return proposals[_proposalId];
+    }
+
+    function isValidSigner(address _signer) external view returns (bool) {
+        return validSigners[_signer].isValid;
     }
 
     function voteOnProposal(address _sender, uint256 _voteOption, uint256 _proposalId, bytes32 _signedHash, bytes32 r, bytes32 s, uint8 v, uint256 _nonce) external {

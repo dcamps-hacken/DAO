@@ -1,9 +1,17 @@
-module.exports = async ({ getNamedAccounts, deployments }) => {
-  const manager = await deployments.fixture[["DaoManager"]];
+module.exports = async () => {
+  const { deploy } = deployments;
+  let deployer;
+  [deployer] = await ethers.getSigners();
+  const manager = await ethers.getContract("DAOmanager");
+  const proposal = await ethers.getContract("DAOproposal");
 
-  await manager.voteOnProposal(uint256 _proposalId, bytes32 _signedHash, bytes32 r, bytes32 s, uint8 v, _nonce, {
-    from: deployer,
-    args: [manager.address],
-    log: true,
-  });
+  //flow:
+  // 1- add the proposal
+  // 2- add the signer
+  // 3- create the TX
+
+  //1
+  const initAddress = await manager.proposals[proposal.address];
+  await manager.addProposal(0, proposal.address);
+  const newAddress = await manager.proposals[proposal.address];
 };

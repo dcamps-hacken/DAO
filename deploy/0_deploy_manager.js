@@ -8,4 +8,4 @@ module.exports = async () => {
     args: [],
   });
 };
-module.exports.tags = ["DAOmanager"];
+module.exports.tags = ["DAOmanager", "All"];

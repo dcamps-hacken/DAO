@@ -9,4 +9,4 @@ module.exports = async () => {
     log: true,
   });
 };
-module.exports.tags = ["DAOproposal"];
+module.exports.tags = ["DAOproposal", "All"];
