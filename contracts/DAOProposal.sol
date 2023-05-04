@@ -2,7 +2,7 @@ pragma solidity 0.8.0;
 
 contract DAOproposal {
 
-    address manager; //should this be set now or after deployment?
+    address immutable manager; //should this be set now or after deployment?
     mapping (uint256 => uint256) votes; //voteOption => number of votes
     mapping (address => bool) hasVoted; //voter => hasVoted
 
