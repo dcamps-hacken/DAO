@@ -6,7 +6,7 @@ contract DAOmanager is Ownable {
     
     struct Signer {
         bool isValid;
-        uint256 nonce; //nonce is tight to address
+        uint256 nonce; 
     }
 
     mapping(address => Signer) public validSigners;

@@ -42,7 +42,6 @@ describe("unit testing", function () {
         .reverted;
     });
     it("Emits corresponding event", async function () {
-      //@audit why doesn't this increase code coverage?
       await expect(manager.addSigner(voter.address)).to.emit(
         manager,
         "SignerAdded"
@@ -68,28 +67,57 @@ describe("unit testing", function () {
       );
     });
   });
-  describe("deleteSigner", function () {}); //@audit tests for view functions???
+  describe("getProposal", function () {}); //@audit tests for view functions???
+  describe("isValidSigner", function () {}); //@audit tests for view functions???
 
   describe("voteOnProposal", function () {
-    it("Increases user nonce", async function () {});
+    it("Passes through and increases nonce", async function () {
+      await manager.connect(deployer).addSigner(voter.address);
+      const prevNonce = await manager.validSigners[voter].isValid;
+      console.log(prevNonce);
+      const _voteOption = 1;
+      const _proposalId = 1;
+      const _nonce = prevNonce + 1;
+
+      const hash = web3.utils.keccak256Wrapper(
+        encodePacked(_voteOption, _proposalId, _nonce)
+      );
+      const _signedHash = voter.signMessage(hash); //eth signed message with ethers
+
+      await manager
+        .connect(voter)
+        .voteOnProposal(
+          voter,
+          _voteOption,
+          _proposalId,
+          _signedHash,
+          r,
+          s,
+          v,
+          _nonce
+        );
+      const newNonce = await manager.validSigners[voter].nonce;
+      assert.equal(newNonce, prevNonce + 1);
+    });
     it("Reverts on invalid hash", async function () {
       await expect(
-        manager.connect(voter).deleteSigner(voter.address)
+        manager.connect(voter).voteOnProposal(voter.address)
       ).to.be.revertedWith("invalid hash");
     });
     it("Reverts if sender is not signer", async function () {
       await expect(
-        manager.connect(voter).deleteSigner(voter.address)
+        manager.connect(voter).voteOnProposal(voter.address)
       ).to.be.revertedWith("incorrect signer");
     });
     it("Reverts if voter has no permission", async function () {
       await expect(
-        manager.connect(voter).deleteSigner(voter.address)
+        manager.connect(voter).voteOnProposal(voter.address)
       ).to.be.revertedWith("voter has no permission");
     });
     it("Reverts if forward call is not successful", async function () {
+      //@audit how to test this
       await expect(
-        manager.connect(voter).deleteSigner(voter.address)
+        manager.connect(voter).voteOnProposal(voter.address)
       ).to.be.revertedWith("unexpected error during call");
     });
   });
