@@ -35,10 +35,12 @@ contract DAOmanagerEIP712 is Ownable {
 
     function createProposal() external onlyOwner {
         address newImplementation = Clones.clone(implementation); //returns new implementation address
+        proposals[proposalId] = newImplementation;
+        proposalId++;
         (bool success, ) = newImplementation.call(
             abi.encodeWithSignature("initialize(address)", owner()) //alternatively use interface
         );
-        proposalId++;
+        require(success, "Implementation initialization failed!");
         emit ProposalCreated(proposalId, newImplementation);
     }
 
