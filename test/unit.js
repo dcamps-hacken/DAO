@@ -72,9 +72,8 @@ describe("unit testing", function () {
 
   describe("voteOnProposal", function () {
     it("Passes through and increases nonce", async function () {
-      await manager.connect(deployer).addSigner(voter.address);
-      const prevNonce = await manager.validSigners[voter].isValid;
-      console.log(prevNonce);
+      await manager.addSigner(voter.address);
+      const prevNonce = await manager.validSigners[voter.address].nonce;
       const _voteOption = 1;
       const _proposalId = 1;
       const _nonce = prevNonce + 1;
@@ -82,8 +81,12 @@ describe("unit testing", function () {
       const hash = web3.utils.keccak256Wrapper(
         encodePacked(_voteOption, _proposalId, _nonce)
       );
-      const _signedHash = voter.signMessage(hash); //eth signed message with ethers
-
+      const hexStringSig = voter.signMessage(hash); /* returns common Signature format where the 
+      r, s and v are concatenated into a 65 byte (130 nibble) DataHexString. */
+      const r = ethers.utils.hexDataSlice(hexStringSig, 0, 32);
+      const s = ethers.utils.hexDataSlice(hexStringSig, 32, 64);
+      const v = ethers.utils.hexDataSlice(hexStringSig, 64, 65);
+      console.log(hexStringSig, r, s, v);
       await manager
         .connect(voter)
         .voteOnProposal(
